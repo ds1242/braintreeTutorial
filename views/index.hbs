@@ -1,41 +1,63 @@
-<div id="dropin-wrapper">
-  <div id="checkout-message"></div>
-  <div id="dropin-container"></div>
-  <button id="submit-button">Submit payment</button>
-</div>
+<form action='/checkout' id='hosted-fields-form' method='post'>
+    <label for='card-nubmer'>Card Number</label>
+    <div id='card-number'></div>
+
+    <label for='cvv'>CVV</label>
+    <div id='cvv'></div>
+
+    <label for='expiration-date'>Expiration Date</label>
+    <div id='expiration-date'></div>
+
+    <div id='checkout-message'></div>
+
+    <input type='submit' value="Pay" disabled />
+</form>
 
 <script>
-    var button = document.querySelector('#submit-button');
+    var form = document.querySelector('#hosted-fields-form');
+    var submit = document.querySelector('input[type="submit"]');
 
     braintree.dropin.create({
         authorization: 'sandbox_ndszmj76_7c2b6vwtqz2z38zm',
         container:'#dropin-container'
-    }, function(createErr, instance) {
-        button.addEventListener('click', function() {
-            instance.requestPaymentMethod(function (requestPaymentMethodErr, payload) {
-                 // when the user clicks on the 'Submit payment' button this code will send the 
-                 // encrypted payment infomration in a variable called a payment method nonce
-                 $.ajax({
-                     type: 'POST',
-                     url:'/checkout',
-                     data: {'paymentMethodNonce': payload.nonce}
-                 }).done(function(result) {
-                     // tear down the drop-in UI
-                     instance.teardown(function(teardownErr) {
-                         if(teardownErr) {
-                             console.error('Could not tear donw Drop-in UI!');
-                         } else {
-                             console.info('Drop-in UI has been torn down!');
-                             // remove the 'submit payment' button
-                             $('#submit-button').remove();
-                         }
-                     });
-
-                     if(result.success) {
-                         $('#checkout-message').html('<h1>Success</h1><p>Your Drop-in UI is working! Check your <a href="https://sandbox.braintreegateway.com/login">sandbox Control Panel</a> for your test transactions.</p><p>Refresh to try another transaction.</p>');
-                     }
-                 });
-            });
-        });
-    });
+    }, function(clientErr, clientInstance) {
+        if(clientErr) {
+            console.error(clientErr);
+            return;
+        }
+        //create a hosteFields component to initialze the form
+        braintree.hostFields.create({
+            client: clientInstance,
+            //customize the hosted fields.
+            //more information can be found at:
+            // https://developers.braintreepayments.com/guides/hosted-fields/styling/javascript/v3
+            styles: {
+                'input': {
+                    'font-size': '14px'
+                },
+                'input.invalid': {
+                    'color': 'red'
+                },
+                'input.valid': {
+                    'color':'green'
+                }
+            },
+            fields: {
+                number: {
+                container: '#card-number',
+                placeholder: '4111 1111 1111 1111'
+                },
+                cvv: {
+                container: '#cvv',
+                placeholder: '123'
+                },
+                expirationDate: {
+                container: '#expiration-date',
+                placeholder: '10/2022'
+                }
+            }
+        }
+        })
+    }
+    })
 </script>
